@@ -1,0 +1,26 @@
+---
+- name: Prepare Ubuntu 24.04 for K8s
+  hosts: all
+  become: yes
+  tasks:
+    - name: Disable SWAP
+      shell: |
+        swapoff -a
+        sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+    - name: Install Load Balancer (Control Planes Only)
+      apt:
+        name: [keepalived, haproxy]
+        state: present
+      when: inventory_hostname in groups['control_planes']
+
+    - name: Enable IP Non-Local Bind
+      sysctl:
+        name: net.ipv4.ip_nonlocal_bind
+        value: '1'
+        sys_state: present
+
+    - name: Install Containerd and K8s Binaries
+      shell: |
+        # (Standard apt commands for containerd, kubeadm, kubelet, kubectl)
+        # Note: In a real environment, use the apt module with the k8s repo
